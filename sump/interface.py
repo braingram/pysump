@@ -69,7 +69,7 @@ class Interface(object):
                 v |= ord(read(1)) << 16
             if not (mask & 8):
                 v |= ord(read(1)) << 24
-            d.append = v
+            d.append(v)
         self.reset()  # TODO is this needed?
         if settings.latest_first:
             return d[::-1]
