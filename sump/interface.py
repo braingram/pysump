@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-import sys
+# import sys
 
-import numpy
+#import numpy
 import serial
 
 from . import defaults
@@ -47,31 +47,34 @@ class Interface(object):
         read_count = settings.read_count
         mask = settings.channel_groups
         read = self.port.read
-        ord_ = ord
 
-        sys.stderr.write('reading %d\n' % (read_count,))
-        sys.stderr.flush()
-        d = numpy.zeros((read_count,), dtype=numpy.uint32)
-        if settings.latest_first:
-            # readings arrive most-recent-first
-            data_sequence = xrange(read_count - 1, -1, -1)
-        else:
-            data_sequence = xrange(read_count)
+        # sys.stderr.write('reading %d\n' % (read_count,))
+        # sys.stderr.flush()
+        # d = numpy.zeros((read_count,), dtype=numpy.uint32)
+        d = []
+        # if settings.latest_first:
+        #    # readings arrive most-recent-first
+        #     data_sequence = xrange(read_count - 1, -1, -1)
+        # else:
+        #     data_sequence = xrange(read_count)
         self.port.timeout = settings.timeout
         self.port.write('\x01')  # start the capture
-        for i in data_sequence:
+        for i in xrange(read_count):
             v = 0
             if not (mask & 1):
-                v |= ord_(read(1))
+                v |= ord(read(1))
             if not (mask & 2):
-                v |= ord_(read(1)) << 8
+                v |= ord(read(1)) << 8
             if not (mask & 4):
-                v |= ord_(read(1)) << 16
+                v |= ord(read(1)) << 16
             if not (mask & 8):
-                v |= ord_(read(1)) << 24
-            d[i] = v
-        self.reset()
-        return d
+                v |= ord(read(1)) << 24
+            d.append = v
+        self.reset()  # TODO is this needed?
+        if settings.latest_first:
+            return d[::-1]
+        else:
+            return d
 
     def id_string(self):
         '''Return device's SUMP ID string.'''
