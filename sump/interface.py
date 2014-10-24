@@ -2,7 +2,6 @@
 
 # import sys
 
-#import numpy
 import serial
 
 from . import defaults
@@ -45,8 +44,10 @@ class Interface(object):
             raise errors.SettingsError("capture must have access to settings")
         # get local references to objects for faster execution ..
         read_count = settings.read_count
-        mask = settings.channel_groups
+        # mask = settings.channel_groups
+        unpack = ops.unpack_functions[settings.channel_groups]
         read = self.port.read
+        nchrs = read_count * ops.chars_by_group[settings.channel_groups]
 
         # sys.stderr.write('reading %d\n' % (read_count,))
         # sys.stderr.flush()
@@ -59,17 +60,19 @@ class Interface(object):
         #     data_sequence = xrange(read_count)
         self.port.timeout = settings.timeout
         self.port.write('\x01')  # start the capture
-        for i in xrange(read_count):
-            v = 0
-            if not (mask & 1):
-                v |= ord(read(1))
-            if not (mask & 2):
-                v |= ord(read(1)) << 8
-            if not (mask & 4):
-                v |= ord(read(1)) << 16
-            if not (mask & 8):
-                v |= ord(read(1)) << 24
-            d.append(v)
+        ri = iter(read(nchrs))
+        d = [unpack(ri) for _ in xrange(len(read_count))]
+        # for i in xrange(read_count):
+        #     v = 0
+        #     if not (mask & 1):
+        #         v |= ord(read(1))
+        #     if not (mask & 2):
+        #         v |= ord(read(1)) << 8
+        #     if not (mask & 4):
+        #         v |= ord(read(1)) << 16
+        #     if not (mask & 8):
+        #         v |= ord(read(1)) << 24
+        #     d.append(v)
         self.reset()  # TODO is this needed?
         if settings.latest_first:
             return d[::-1]
