@@ -44,10 +44,14 @@ class Interface(object):
             raise errors.SettingsError("capture must have access to settings")
         # get local references to objects for faster execution ..
         read_count = settings.read_count
-        # mask = settings.channel_groups
-        unpack = ops.unpack_functions[settings.channel_groups]
+        ufs = []
+        for i in xrange(4):
+            if not (settings.channel_groups & (i + 1)):
+                ufs.append(lambda c: ord(c) << (8 * i))
+
+        # unpack = ops.unpack_functions[settings.channel_groups]
         read = self.port.read
-        nchrs = read_count * ops.chars_by_group[settings.channel_groups]
+        # nchrs = read_count * ops.chars_by_group[settings.channel_groups]
 
         # sys.stderr.write('reading %d\n' % (read_count,))
         # sys.stderr.flush()
@@ -60,8 +64,13 @@ class Interface(object):
         #     data_sequence = xrange(read_count)
         self.port.timeout = settings.timeout
         self.port.write('\x01')  # start the capture
-        ri = iter(read(nchrs))
-        d = [unpack(ri) for _ in xrange(len(read_count))]
+        # ri = iter(read(nchrs))
+        for _ in xrange(read_count):
+            v = 0
+            for uf in ufs:
+                v |= uf(read(1))
+            d.append(v)
+        # d = [unpack(ri) for _ in xrange(read_count)]
         # for i in xrange(read_count):
         #     v = 0
         #     if not (mask & 1):
