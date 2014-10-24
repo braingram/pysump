@@ -3,7 +3,7 @@
 from . import defaults
 
 
-class SumpDeviceSettings (object):
+class Settings (object):
     '''Sampling and trigger parameters.'''
     # undivided clock rate, in Hz, from testing with OBLS
     clock_rate = 100000000
@@ -45,7 +45,7 @@ class SumpDeviceSettings (object):
 
     def clone(self):
         '''Clone an independent copy of these settings.'''
-        o = SumpDeviceSettings()  # other instance
+        o = Settings()  # other instance
         self.copy(o)
         return o
 

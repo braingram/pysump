@@ -8,19 +8,26 @@ import serial
 from . import defaults
 from . import errors
 from . import ops
+# import settings this as settings_module to avoid name conflicts
+from . import settings as settings_module
 
 
-class SumpInterface (object):
+class Interface(object):
     # undivided clock rate, in Hz, from testing with OBLS
     clock_rate = 100000000
     protocol_version = '1.0'
 
-    def __init__(self, path, baud=defaults.SUMP_BAUD, timeout=None):
+    def __init__(self, path=None, baud=None, timeout=None):
         self.timeout = timeout
+        if path is None:
+            path = defaults.PATH
+        if baud is None:
+            baud = defaults.BAUD
         self.port = serial.Serial(path, baud, timeout=self.timeout)
         self.debug_logger = None
         self.reset()
         self.metadata = self.query_metadata()
+        self.settings = None
 
     def reset(self):
         w = self.port.write
@@ -30,8 +37,12 @@ class SumpInterface (object):
         w('\x00')
         w('\x00')
 
-    def capture(self, settings):
+    def capture(self, settings=None):
         '''Request a capture.'''
+        if settings is None:
+            settings = self.settings
+        if settings is None:
+            raise errors.SettingsError("capture must have access to settings")
         # get local references to objects for faster execution ..
         read_count = settings.read_count
         mask = settings.channel_groups
@@ -218,7 +229,7 @@ class SumpInterface (object):
             self.send_trigger_mask_settings(settings)
             self.send_trigger_values_settings(settings)
         else:
-            raise errors.SumpTriggerEnableError
+            raise errors.TriggerEnableError
 
     def set_logfile(self, logfile):
         self.debug_logger = logfile
@@ -267,3 +278,13 @@ class SumpInterface (object):
     def close(self):
         self.port.close()
         self.port = None
+
+
+def open_interface(port=None, baud=None, **kwargs):
+    s = settings_module.Settings()
+    for kw in kwargs:
+        setattr(s, kw, kwargs[kw])
+    i = Interface(port, baud)
+    i.settings = s
+    i.send_settings(s)
+    return i

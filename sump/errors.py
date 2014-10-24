@@ -1,21 +1,25 @@
 #!/usr/bin/env python
 
 
-class SumpError (StandardError):
+class SumpError(StandardError):
     '''Errors raised by the SUMP client.'''
 
 
-class SumpIdError (SumpError):
+class IdError(SumpError):
     '''The wrong string was returned by an ID request.'''
 
 
-class SumpFlagsError (SumpError):
+class FlagsError(SumpError):
     '''Illegal combination of flags.'''
 
 
-class SumpTriggerEnableError (SumpError):
+class TriggerEnableError(SumpError):
     '''Illegal trigger enable setting.'''
 
 
-class SumpStageError (SumpError):
+class StageError(SumpError):
     '''Illegal trigger stage setting.'''
+
+
+class SettingError(SumpError):
+    '''Setting related error'''
