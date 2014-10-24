@@ -1,28 +1,13 @@
-# -*- coding: ASCII -*-
-'''Interface with SUMP logic-analyzer device.
-Copyright 2011, Mel Wilson mwilson@melwilsonsoftware.ca
+#!/usr/bin/env python
 
-This file is part of pyLogicSniffer.
-
-    pyLogicSniffer is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    pyLogicSniffer is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with pyLogicSniffer.  If not, see <http://www.gnu.org/licenses/>.
-'''
-
-import serial
 import sys
+
 import numpy
+import serial
 
-
+from . import defaults
+from . import errors
+from . import ops
 
 
 class SumpInterface (object):
@@ -30,7 +15,7 @@ class SumpInterface (object):
     clock_rate = 100000000
     protocol_version = '1.0'
 
-    def __init__(self, path, baud=SUMP_BAUD, timeout=None):
+    def __init__(self, path, baud=defaults.SUMP_BAUD, timeout=None):
         self.timeout = timeout
         self.port = serial.Serial(path, baud, timeout=self.timeout)
         self.debug_logger = None
@@ -115,7 +100,7 @@ class SumpInterface (object):
     def send_trigger_mask_settings(self, settings):
         # w = self.port.write
         w = self._trace_control('Trigger mask')
-        for stage in xrange(MAX_TRIGGER_STAGES):
+        for stage in xrange(defaults.MAX_TRIGGER_STAGES):
             m = settings.trigger_mask[stage]
             w(chr(0xC0 | (stage << 2)))
             w(chr(m & 0xFF))
@@ -135,7 +120,7 @@ class SumpInterface (object):
     def send_trigger_values_settings(self, settings):
         # w = self.port.write
         w = self._trace_control('Trigger values')
-        for stage in xrange(MAX_TRIGGER_STAGES):
+        for stage in xrange(defaults.MAX_TRIGGER_STAGES):
             v = settings.trigger_values[stage]
             w(chr(0xC1 | (stage << 2)))
             w(chr(v & 0xFF))
@@ -158,7 +143,7 @@ class SumpInterface (object):
     def send_trigger_configuration_settings(self, settings):
         # w = self.port.write
         w = self._trace_control('Trigger config')
-        for stage in xrange(MAX_TRIGGER_STAGES):
+        for stage in xrange(defaults.MAX_TRIGGER_STAGES):
             w(chr(0xC2 | (stage << 2)))
             d = settings.trigger_delay[stage]
             w(chr(d & 0xFF))
@@ -213,7 +198,7 @@ class SumpInterface (object):
         trigger_enable = settings.trigger_enable
         if trigger_enable == 'None':
             # send always-trigger trigger settings
-            for stage in xrange(MAX_TRIGGER_STAGES):
+            for stage in xrange(defaults.MAX_TRIGGER_STAGES):
                 self._send_trigger_configuration(stage, 0, 0, 0, True, False)
                 self._send_trigger_mask(stage, 0)
                 self._send_trigger_values(stage, 0)
@@ -224,7 +209,7 @@ class SumpInterface (object):
                 0, True, settings.trigger_serial[0])
             self._send_trigger_mask(0, settings.trigger_mask[0])
             self._send_trigger_values(0, settings.trigger_values[0])
-            for stage in xrange(1, MAX_TRIGGER_STAGES):
+            for stage in xrange(1, defaults.MAX_TRIGGER_STAGES):
                 self._send_trigger_configuration(stage, 0, 0, 0, False, False)
                 self._send_trigger_mask(stage, 0)
                 self._send_trigger_values(stage, 0)
@@ -233,7 +218,7 @@ class SumpInterface (object):
             self.send_trigger_mask_settings(settings)
             self.send_trigger_values_settings(settings)
         else:
-            raise SumpTriggerEnableError
+            raise errors.SumpTriggerEnableError
 
     def set_logfile(self, logfile):
         self.debug_logger = logfile
@@ -268,7 +253,7 @@ class SumpInterface (object):
                     result.append((token, ''.join(v)))
 
                 elif token <= 0x3F:  # 32-bit int follows token
-                    result.append((token, big_endian(r(4))))
+                    result.append((token, ops.big_endian(r(4))))
 
                 elif token <= 0x5F:  # 8-bit int follows token
                     result.append((token, ord(r(1))))
