@@ -43,12 +43,6 @@ class Settings (object):
         # default immediate start from stage 0
         self.trigger_start = [True] + [False] * (stages - 1)
 
-    def clone(self):
-        '''Clone an independent copy of these settings.'''
-        o = Settings()  # other instance
-        self.copy(o)
-        return o
-
     def copy(self, other):
         '''Copy these settings to another instance.'''
         other.divider = self.divider

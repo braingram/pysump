@@ -6,6 +6,7 @@ import serial
 
 from . import defaults
 from . import errors
+from . import fio
 from . import ops
 # import settings this as settings_module to avoid name conflicts
 from . import settings as settings_module
@@ -62,6 +63,9 @@ class Interface(object):
             return d[::-1]
         else:
             return d
+
+    def save(self, capture, filename, meta=None):
+        fio.save(capture, filename, self.settings, meta)
 
     def id_string(self):
         '''Return device's SUMP ID string.'''
