@@ -47,7 +47,7 @@ class Interface(object):
         ufs = []
         for i in xrange(4):
             if not (settings.channel_groups & (i + 1)):
-                ufs.append(lambda c: ord(c) << (8 * i))
+                ufs.append(lambda c, si=i: ord(c) << (8 * si))
 
         d = []
         self.port.timeout = settings.timeout
