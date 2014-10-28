@@ -46,7 +46,7 @@ class Interface(object):
         # get local references to objects for faster execution ..
         ufs = []
         for i in xrange(4):
-            if not (settings.channel_groups & (i + 1)):
+            if not (settings.channel_groups & (0b1 < i)):
                 ufs.append(lambda c, si=i: ord(c) << (8 * si))
 
         d = []
