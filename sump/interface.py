@@ -88,7 +88,7 @@ class Interface(object):
             logger.write('\n' + legend + ' \t')
 
             def tw(data):
-                logger.write('%02x' % (ord(data),))
+                logger.write('%s ' % (bin(ord(data))[2:].zfill(8),))
                 logger.flush()
                 w(data)
             return tw
@@ -197,9 +197,10 @@ class Interface(object):
         w('\x00')
 
     def send_settings(self, settings):
+        """
+        The order of things in this function are CRITICAL
+        """
         self.send_divider_settings(settings)
-        self.send_read_and_delay_count_settings(settings)
-        self.send_flags_settings(settings)
         trigger_enable = settings.trigger_enable
         if trigger_enable == 'None':
             # send always-trigger trigger settings
@@ -219,11 +220,21 @@ class Interface(object):
                 self._send_trigger_mask(stage, 0)
                 self._send_trigger_values(stage, 0)
         elif trigger_enable == 'Complex':
-            self.send_trigger_configuration_settings(settings)
-            self.send_trigger_mask_settings(settings)
-            self.send_trigger_values_settings(settings)
+            for stage in xrange(defaults.MAX_TRIGGER_STAGES):
+                # OLS needs things in this order
+                self._send_trigger_mask(stage, settings.trigger_mask[stage])
+                self._send_trigger_values(stage, settings.trigger_values[stage])
+                self._send_trigger_configuration(
+                    stage, settings.trigger_delay[stage],
+                    settings.trigger_channel[stage],
+                    settings.trigger_level[stage],
+                    settings.trigger_start[stage],
+                    settings.trigger_serial[stage],
+                )
         else:
             raise errors.TriggerEnableError
+        self.send_read_and_delay_count_settings(settings)
+        self.send_flags_settings(settings)
 
     def set_logfile(self, logfile):
         self.debug_logger = logfile
