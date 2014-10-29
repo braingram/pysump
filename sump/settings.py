@@ -20,7 +20,7 @@ class Settings(object):
         self.timeout = None
         self.latest_first = True
         self.divider = 2
-        self.read_count = 4096
+        self.read_count = 6140
         self.delay_count = 2048
         self.external = False
         self.inverted = False
@@ -28,8 +28,10 @@ class Settings(object):
         self.demux = False
         self.channel_groups = 0x0
         self.trigger_enable = 'None'
-        self.trigger_stages = [
-            TriggerStage(level=i) for i in xrange(self.trigger_max_stages)]
+        self.trigger_stages = []
+        self.trigger_max_stages = 4
+        for kw in kwargs:
+            setattr(self, kw, kwargs[kw])
 
     @property
     def trigger_max_stages(self):

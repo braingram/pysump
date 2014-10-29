@@ -14,6 +14,8 @@ from . import ops
 from . import settings as settings_module
 
 logger = logging.getLogger(__name__)
+logger.addHandler(logging.StreamHandler())
+logger.setLevel(logging.DEBUG)
 
 
 class Interface(object):
@@ -22,15 +24,20 @@ class Interface(object):
 
     def __init__(
             self, path='/dev/ttyACM0', baud=115200,
-            timeout=None, settings=None):
+            timeout=None, settings=None, **kwargs):
         self.timeout = timeout
         if settings is None:
-            self.settings = settings_module.Settings()
+            self.settings = settings_module.Settings(**kwargs)
+        else:
+            self.settings = settings
+            if len(kwargs):
+                for kw in kwargs:
+                    setattr(self.settings, kw, kwargs[kw])
         self.port = serial.Serial(path, baud, timeout=self.timeout)
         self.debug_logger = None
         self.reset()
         self.metadata = self.query_metadata()
-        self.settings = None
+        self.send_settings()
 
     def reset(self):
         logger.debug("reset")
@@ -42,6 +49,7 @@ class Interface(object):
         if send_settings:
             self.send_settings()
         # get local references to objects for faster execution ..
+        logger.debug("building unpack functions")
         ufs = []
         for i in xrange(4):
             if not (self.settings.channel_groups & (0b1 < i)):
@@ -49,8 +57,10 @@ class Interface(object):
 
         d = []
         self.port.timeout = self.settings.timeout
+        logger.debug("starting capture")
         self.port.write('\x01')  # start the capture
-        for _ in xrange(self.settings.read_count):
+        logger.debug("reading capture")
+        for i in xrange(self.settings.read_count):
             v = 0
             for uf in ufs:
                 v |= uf(self.port.read(1))
@@ -144,8 +154,12 @@ class Interface(object):
 
     def send_read_and_delay_count_settings(self, settings):
         logger.debug("send_read_and_delay_count_settings")
-        r = (settings.read_count + 3) >> 2
-        d = (settings.delay_count + 3) >> 2
+        #r = (settings.read_count + 3) >> 2
+        r = (settings.read_count // 4)
+        settings.read_count = r * 4
+        #d = (settings.delay_count + 3) >> 2
+        d = (settings.delay_count // 4)
+        settings.delay_count = d * 4
         msg = struct.pack('<cHH', '\x81', r, d)
         self.port.write(msg)
         #w = self.port.write
@@ -194,7 +208,7 @@ class Interface(object):
             for stage in xrange(self.settings.trigger_max_stages):
                 self._send_trigger_configuration(stage, 0, 0, 0, True, False)
                 self._send_trigger_mask(stage, 0)
-                self._send_trigger_values(stage, 0)
+                self._send_trigger_value(stage, 0)
         elif trigger_enable == 'Simple':
             # set settings from stage 0, no-op for stages 1..3
             self._send_trigger_configuration(
@@ -202,16 +216,16 @@ class Interface(object):
                 self.settings.trigger_stages[0].channel,
                 0, True, self.settings.trigger_stages[0].serial)
             self._send_trigger_mask(0, self.settings.trigger_stages[0].mask)
-            self._send_trigger_values(0, self.settings.trigger_stages[0].value)
+            self._send_trigger_value(0, self.settings.trigger_stages[0].value)
             for stage in xrange(1, self.self.settings.trigger_max_stages):
                 self._send_trigger_configuration(stage, 0, 0, 0, False, False)
                 self._send_trigger_mask(stage, 0)
-                self._send_trigger_values(stage, 0)
+                self._send_trigger_value(stage, 0)
         elif trigger_enable == 'Complex':
             for (i, stage) in enumerate(self.settings.trigger_stages):
                 # OLS needs things in this order
                 self._send_trigger_mask(i, stage.mask)
-                self._send_trigger_values(i, stage.value)
+                self._send_trigger_value(i, stage.value)
                 self._send_trigger_configuration(
                     i, stage.delay, stage.channel, stage.level, stage.start,
                     stage.serial)
@@ -268,11 +282,6 @@ class Interface(object):
         self.port = None
 
 
-def open_interface(port=None, baud=None, **kwargs):
-    s = settings_module.Settings()
-    for kw in kwargs:
-        setattr(s, kw, kwargs[kw])
-    i = Interface(port, baud)
-    i.settings = s
-    i.send_settings(s)
+def open_interface(port='/dev/ttyACM0', baud=115200, **kwargs):
+    i = Interface(port, baud, **kwargs)
     return i
