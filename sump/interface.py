@@ -52,7 +52,7 @@ class Interface(object):
         logger.debug("building unpack functions")
         ufs = []
         for i in xrange(4):
-            if not (self.settings.channel_groups & (0b1 < i)):
+            if not (self.settings.channel_groups & (0b1 << i)):
                 ufs.append(lambda c, si=i: ord(c) << (8 * si))
 
         d = []
