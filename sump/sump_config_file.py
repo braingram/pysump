@@ -20,43 +20,47 @@ This file is part of pyLogicSniffer.
 import ConfigParser as configparser
 import sump
 
-sump_int_parms = ['divider', 'read_count', 'delay_count', 'inverted',
-		'external', 'filter', 'demux', 'channel_groups', 
-		]
+sump_int_parms = [
+    'divider', 'read_count', 'delay_count', 'inverted',
+    'external', 'filter', 'demux', 'channel_groups',
+]
 sump_str_parms = ['trigger_enable']
-trigger_int_parms = ['trigger_mask', 'trigger_values',
-		'trigger_delay', 'trigger_level', 'trigger_channel',
-		'trigger_serial', 'trigger_start'
-		]
-	
-def save_config (path, config):
-	'''Save SUMP device settings to a config file.'''
-	p = configparser.RawConfigParser()
-	p.add_section ('sump')
-	for parm in sump_int_parms:
-		p.set ('sump', parm, int (getattr (config, parm)))
-	for parm in sump_str_parms:
-		p.set ('sump', parm, getattr (config, parm))
-	for stage in xrange (4):
-		section = 'stage%d' % (stage,)
-		p.add_section (section)
-		for parm in trigger_int_parms:
-			p.set (section, parm, int (getattr (config, parm)[stage]))
-	with open (path, 'wt') as fp:
-		p.write (fp)
-			
-def load_config (path):
-	'''Load SUMP device settings from a config file.'''
-	p = configparser.RawConfigParser()
-	p.read ([path])
-	c = sump.SumpDeviceSettings()
-	for parm in sump_int_parms:
-		setattr (c, parm, p.getint ('sump', parm))
-	for parm in sump_str_parms:
-		setattr (c, parm, p.get ('sump', parm))
-	for stage in xrange (4):
-		section = 'stage%d' % (stage,)
-		for parm in trigger_int_parms:
-			attr = getattr (c, parm)
-			attr[stage] = p.getint (section, parm)
-	return c
+trigger_int_parms = [
+    'trigger_mask', 'trigger_values',
+    'trigger_delay', 'trigger_level', 'trigger_channel',
+    'trigger_serial', 'trigger_start'
+]
+
+
+def save_config(path, config):
+    '''Save SUMP device settings to a config file.'''
+    p = configparser.RawConfigParser()
+    p.add_section('sump')
+    for parm in sump_int_parms:
+        p.set('sump', parm, int(getattr(config, parm)))
+    for parm in sump_str_parms:
+        p.set('sump', parm, getattr(config, parm))
+    for stage in xrange(4):
+        section = 'stage%d' % (stage,)
+        p.add_section(section)
+        for parm in trigger_int_parms:
+            p.set(section, parm, int(getattr(config, parm)[stage]))
+    with open(path, 'wt') as fp:
+        p.write(fp)
+
+
+def load_config(path):
+    '''Load SUMP device settings from a config file.'''
+    p = configparser.RawConfigParser()
+    p.read([path])
+    c = sump.SumpDeviceSettings()
+    for parm in sump_int_parms:
+        setattr(c, parm, p.getint('sump', parm))
+    for parm in sump_str_parms:
+        setattr(c, parm, p.get('sump', parm))
+    for stage in xrange(4):
+        section = 'stage%d' % (stage,)
+        for parm in trigger_int_parms:
+            attr = getattr(c, parm)
+            attr[stage] = p.getint(section, parm)
+    return c
