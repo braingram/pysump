@@ -4,6 +4,7 @@ import hashlib
 import logging
 import pickle
 
+import numpy
 import serial
 
 from ..settings import Settings
@@ -13,6 +14,11 @@ defaults = {
     'baud': 115200,
     'timeout': None,
 }
+
+
+capture_dtypes = [
+    numpy.uint8, numpy.uint16, numpy.uint32, numpy.uint32,
+    numpy.uint64, numpy.uint64]
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +113,8 @@ class RS232Sump(object):
             len(ufs))
         # include trigger value
         n_samples = self.settings.read_count
-        d = [0] * n_samples
+        dt = capture_dtypes[len(ufs)]
+        d = numpy.empty(n_samples, dtype=dt)
         self.port.write('\x01')
         for i in xrange(n_samples):
             v = 0
