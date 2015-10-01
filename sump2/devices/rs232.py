@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+import hashlib
+import logging
+import pickle
+
 import serial
 
 from ..settings import Settings
@@ -10,12 +14,15 @@ defaults = {
     'timeout': None,
 }
 
+logger = logging.getLogger(__name__)
+
 
 class RS232Sump(object):
     def __init__(self, port=None, baud=None, timeout=None, settings=None):
         if settings is None:
             settings = {}
         self.settings = Settings(settings)
+        self._settings_hash = None
         if port is None:
             port = settings.get('path', defaults['port'])
         self.port_string = port
@@ -26,27 +33,47 @@ class RS232Sump(object):
             timeout = settings.get('timeout', defaults['timeout'])
         self.timeout = timeout
         self.port = None
+        logger.debug(
+            "RS232Sump.__init__(%s, %s, %s, %s)",
+            port, baud, timeout, settings)
         self.connect()
 
     def connect(self):
+        logger.debug("RS232Sump.connect")
         if self.port is not None:
             self.disconnect()
         self.port = serial.Serial(
             self.port_string, self.baud, timeout=self.timeout)
 
     def disconnect(self):
+        logger.debug("RS232Sump.disconnect")
         if self.port is None:
             return
         self.port.close()
         self.port = None
 
     def __del__(self):
+        logger.debug("RS232Sump.__del__")
         self.disconnect()
 
-    def _send_settings(self):
-        pass
+    def send_settings(self):
+        logger.debug("RS232Sump.send_settings")
+        self.reset()
+        h = self.settings.pack()
+        self.port.write(self.settings.pack())
+        self._settings_hash = h
+
+    def _check_settings_hash(self):
+        """False if settings need updated"""
+        if self._settings_hash is None:
+            return False
+        h = self.settings.pack()
+        if h != self._settings_hash:
+            return False
+        return True
 
     def reset(self, hard=True):
+        logger.debug("RS232Sump.reset")
         if hard:
             self.port.write('\x00\x00\x00\x00\x00')
         else:
@@ -71,10 +98,18 @@ class RS232Sump(object):
         return ufs
 
     def capture(self):
+        logger.debug("RS232Sump.capture")
+        if not self._check_settings_hash():
+            self.send_settings()
         ufs = self._build_unpack_functions()
-        d = [0] * self.settings.read_count
+        logger.debug(
+            "RS232Sump.capture: built %i unpack functions" %
+            len(ufs))
+        # include trigger value
+        n_samples = self.settings.read_count
+        d = [0] * n_samples
         self.port.write('\x01')
-        for i in xrange(self.settings.read_count):
+        for i in xrange(n_samples):
             v = 0
             for uf in ufs:
                 v |= uf(self.port.read(1))
