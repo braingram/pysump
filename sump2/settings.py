@@ -26,6 +26,7 @@ default_settings = {
     'demux': False,
     'filter': False,
     'channel_groups': 0x0,
+    'max_channel_groups': 4,
     'external': False,
     'inverted': False,
 }

@@ -62,6 +62,21 @@ class RS232Sump(object):
     def xoff(self):
         self.port.write('\x13')
 
+    def _build_unpack_functions(self):
+        ufs = []
+        for i in xrange(self.settings.max_channel_groups):
+            if not self.settings.channel_groups & (0b1 << i):
+                o = 8 * i
+                ufs.append(lambda c, o=o: ord(c) << o)
+        return ufs
+
     def capture(self):
-        # TODO
-        pass
+        ufs = self._build_unpack_functions()
+        d = [0] * self.settings.read_count
+        self.port.write('\x01')
+        for i in xrange(self.settings.read_count):
+            v = 0
+            for uf in ufs:
+                v |= uf(self.port.read(1))
+            d[i] = v
+        return d
