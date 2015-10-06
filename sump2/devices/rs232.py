@@ -50,6 +50,7 @@ class RS232Sump(object):
             self.disconnect()
         self.port = serial.Serial(
             self.port_string, self.baud, timeout=self.timeout)
+        self.reset()
 
     def disconnect(self):
         logger.debug("RS232Sump.disconnect")
