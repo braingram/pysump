@@ -3,6 +3,7 @@
 import hashlib
 import logging
 import pickle
+import time
 
 import numpy
 import serial
@@ -50,6 +51,7 @@ class RS232Sump(object):
             self.disconnect()
         self.port = serial.Serial(
             self.port_string, self.baud, timeout=self.timeout)
+        self.flush()
         self.reset()
 
     def disconnect(self):
@@ -79,12 +81,20 @@ class RS232Sump(object):
             return False
         return True
 
-    def reset(self, hard=True):
+    def flush(self, timeout=0.1):
+        while self.port.inWaiting():
+            self.port.flushInput()
+            time.sleep(timeout)
+
+    def reset(self, hard=True, flush=True):
         logger.debug("RS232Sump.reset")
         if hard:
             self.port.write('\x00\x00\x00\x00\x00')
         else:
             self.port.write('\x00')
+        if not flush:
+            return
+        self.flush()
 
     def id_string(self):
         self.port.write('\x02')
